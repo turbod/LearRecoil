@@ -1,4 +1,7 @@
-import {useState} from 'react'
+import React from 'react'
+import { atom, atomFamily, useRecoilState } from 'recoil'
+import {Drag} from '../Drag'
+import { Resize } from '../Resize'
 import {RectangleContainer} from './RectangleContainer'
 import {RectangleInner} from './RectangleInner'
 
@@ -7,23 +10,64 @@ export type ElementStyle = {
     size: {width: number; height: number}
 }
 
-export const Rectangle = () => {
-    const [element] = useState({
-        style: {
-            position: {top: 100, left: 100},
-            size: {width: 100, height: 100},
-        },
-    })
+export type Element = {style: ElementStyle}
+
+export const elementState = atomFamily<Element, number>({
+    key: 'elements',
+    default: {
+      style: {
+        position: {top: 0, left: 0},
+        size: {width: 150, height: 150},
+      }
+    },
+})
+
+export const selectedElementState = atom<number | null>({
+    key: 'selectedElement',
+    default: null,
+})
+
+export const Rectangle = ({id}: {id: number}) => {
+    const [selectedElement, setSelectedElement] = useRecoilState(selectedElementState)
+    const [element, setElement] = useRecoilState(elementState(id))
+    const selected = id === selectedElement
 
     return (
-        <RectangleContainer
+      <RectangleContainer
+                    position={element.style.position}
+                    size={element.style.size}
+                    onSelect={() => {
+                        setSelectedElement(id)
+                    }}
+                >
+                  <Resize
+                    selected={selected}
+                    position={element.style.position}
+                    size={element.style.size}
+                    onResize={(style) => {
+                      setElement({
+                        ...element,
+                        style,
+                      })
+                    }}
+                  >
+        <Drag
             position={element.style.position}
-            size={element.style.size}
-            onSelect={() => {
-                console.log("I've been selected!")
+            onDrag={(position) => {
+                setElement({
+                    style: {
+                        ...element.style,
+                        position,
+                    },
+                })
             }}
         >
-            <RectangleInner selected={false} />
+            <div>
+                
+                    <RectangleInner selected={selected} />
+            </div>
+        </Drag>
+        </Resize>
         </RectangleContainer>
     )
 }
